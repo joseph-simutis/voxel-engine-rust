@@ -20,9 +20,9 @@ impl Identifier {
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Coordinates {
-    x: i64,
-    y: i64,
-    z: i64,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 impl Coordinates {
@@ -52,9 +52,7 @@ pub struct Universe {
 
 impl Universe {
     pub fn new() -> Universe {
-        Universe {
-            levels: HashMap::new(),
-        }
+        Universe { levels: HashMap::new() }
     }
 
     pub fn add_levels(&mut self, registered_packs: Res<RegisteredPacks>) -> usize {
@@ -75,9 +73,7 @@ pub struct Level {
 
 impl Level {
     pub fn new() -> Level {
-        Level {
-            chunks: HashMap::new(),
-        }
+        Level { chunks: HashMap::new() }
     }
 }
 
@@ -115,31 +111,39 @@ impl ChunkData {
     }
 
     pub fn completed(self) -> ChunkData {
-        let mut new_contents =  self.contents.clone();
+        let mut new_data =  ChunkData { contents: self.contents.clone() };
         for x in 0..16 {
             for y in 0..16 {
                 for z in 0..16 {
-                    new_contents.entry(Coordinates::new((x, y, z))).or_insert(None);
+                    new_data.contents.entry(Coordinates::new((x, y, z))).or_insert(None);
                 }
             }
         }
-        ChunkData { contents: new_contents }
+        new_data
     }
 
     pub fn trimmed(self) -> ChunkData {
-        let mut new_contents = self.contents.clone();
+        let mut new_data =  ChunkData { contents: self.contents.clone() };
         for (coords, voxel) in self.contents {
             if coords.outside_chunk() {
-                new_contents.remove(&coords);
+                new_data.contents.remove(&coords);
             }
         }
-        ChunkData { contents: new_contents }
+        new_data
     }
 }
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Voxel {
     id: Identifier
+}
+
+impl Voxel {
+    pub fn new(new_id: Identifier) -> Voxel {
+        Voxel  {
+            id: new_id,
+        }
+    }
 }
 
 pub fn startup(mut universe: ResMut<Universe>, registered_packs: Res<RegisteredPacks>) {

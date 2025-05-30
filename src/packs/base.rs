@@ -22,7 +22,11 @@ impl Pack for VoxelEngineBase {
         for x in 0..16 {
             for y in 0..16 {
                 for z in 0..16 {
-                    new_contents.insert(Coordinates::new((x, y, z)), None);
+                    if chunk_coords.y >= 0 {
+                        new_contents.insert(Coordinates::new((x, y, z)), None);
+                    } else {
+                        new_contents.insert(Coordinates::new((x, y, z)), Some(Voxel::new(Identifier::new("base", "dev_tile"))));
+                    }
                 }
             }
         }

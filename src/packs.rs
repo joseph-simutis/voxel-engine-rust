@@ -4,22 +4,20 @@ use std::collections::HashMap;
 
 #[derive(bevy::prelude::Resource)]
 pub struct RegisteredPacks {
-    // Note: This should be updated to allow any type of pack, but I have not been able to get that to work yet.
-    pub contents: HashMap<String, base::VoxelEngineBase>
+    pub contents: HashMap<String, Box<dyn Pack>>
 }
 
 impl RegisteredPacks {
     pub fn new() -> RegisteredPacks {
-        RegisteredPacks {
-            contents: HashMap::from([
-                (String::from("base"), base::VoxelEngineBase {}),
-            ])
-        }
+        let mut new_packs = RegisteredPacks { contents: HashMap::new() };
+        // The base pack shouldn't be required. Given a proper replacement, the game should work perfectly well, even without the base pack.
+        new_packs.contents.insert(String::from("base"), Box::new(base::VoxelEngineBase {}));
+        new_packs
     }
 }
 
 // Please ensure that the identifiers you return have the pack value set to the name of your pack.
-pub trait Pack {
+pub trait Pack: Send + Sync {
     fn get_voxels(&self) -> Vec<Identifier> {
         Vec::new()
     }
@@ -28,6 +26,7 @@ pub trait Pack {
         Vec::new()
     }
 
+    // Returning None for this method should only be done if the level does not exist.
     fn generate(&self, level_id: Identifier, chunk_coords: Coordinates) -> Option<ChunkData> {
         None
     }
