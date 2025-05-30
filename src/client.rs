@@ -5,6 +5,7 @@ pub fn startup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    println!("[CLIENT] Initializing...");
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
         MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
@@ -21,9 +22,9 @@ pub fn startup(
         Camera3d::default(),
         Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
-    println!("Client Initialized!");
+    println!("[CLIENT] Initialized!");
 }
 
 pub fn update(time: Res<Time>) {
-    let delta = time.delta();
+    let _delta = time.delta();
 }
