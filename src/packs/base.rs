@@ -1,19 +1,24 @@
 use crate::packs::Pack;
-use crate::server::*;
+use crate::common::*;
 use std::collections::HashMap;
 
 pub struct VoxelEngineBase;
 
 impl Pack for VoxelEngineBase {
+    fn get_identifier(&self, obj: &str) -> Identifier {
+        Identifier::new("base", obj)
+    }
+
     fn get_voxels(&self) -> Vec<Identifier> {
         let mut voxels = Vec::new();
-        voxels.push(Identifier::new("base", "dev_tile"));
+        voxels.push(self.get_identifier("dev_tile"));
+        voxels.push(self.get_identifier("err_tile"));
         voxels
     }
 
     fn get_levels(&self) -> Vec<Identifier> {
         let mut levels = Vec::new();
-        levels.push(Identifier::new("base", "dev"));
+        levels.push(self.get_identifier("dev_lv"));
         levels
     }
 
@@ -23,9 +28,9 @@ impl Pack for VoxelEngineBase {
             for y in 0..16 {
                 for z in 0..16 {
                     if chunk_coords.y >= 0 {
-                        new_contents.insert(Coordinates::new((x, y, z)), None);
+                        new_contents.insert(Coordinates::new((x, y, z), CoordType::Relative), None);
                     } else {
-                        new_contents.insert(Coordinates::new((x, y, z)), Some(Voxel::new(Identifier::new("base", "dev_tile"))));
+                        new_contents.insert(Coordinates::new((x, y, z), CoordType::Relative), Some(Voxel::new(self.get_identifier("dev_tile"))));
                     }
                 }
             }

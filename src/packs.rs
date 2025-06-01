@@ -1,5 +1,5 @@
 pub mod base;
-use crate::server::*;
+use crate::common::*;
 use std::collections::HashMap;
 
 #[derive(bevy::prelude::Resource)]
@@ -18,6 +18,8 @@ impl RegisteredPacks {
 
 // Please ensure that the identifiers you return have the pack value set to the name of your pack.
 pub trait Pack: Send + Sync {
+    fn get_identifier(&self, obj: &str) -> Identifier;
+
     fn get_voxels(&self) -> Vec<Identifier> {
         Vec::new()
     }

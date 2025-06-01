@@ -1,5 +1,11 @@
 use bevy::prelude::*;
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, States)]
+pub enum GameState {
+    Menu,
+    TitleScreen,
+}
+
 pub fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -12,11 +18,12 @@ pub fn startup(
         Transform::from_xyz(0.0, 0.5, 0.0),
     ));
     commands.spawn((
-        PointLight {
+        DirectionalLight {
+            illuminance: 900.0,
             shadows_enabled: true,
             ..default()
         },
-        Transform::from_xyz(4.0, 8.0, 4.0),
+        Transform::from_xyz(0.5, 0.5, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
     commands.spawn((
         Camera3d::default(),
