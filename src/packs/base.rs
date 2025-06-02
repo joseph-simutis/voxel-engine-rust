@@ -18,7 +18,7 @@ impl Pack for VoxelEngineBase {
 
     fn get_levels(&self) -> Vec<Identifier> {
         let mut levels = Vec::new();
-        levels.push(self.get_identifier("dev_lv"));
+        levels.push(self.get_identifier("lvdev"));
         levels
     }
 
