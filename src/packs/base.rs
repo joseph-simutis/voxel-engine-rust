@@ -27,15 +27,15 @@ impl Pack for VoxelEngineBase {
 
     fn get_levels(&self) -> Vec<Identifier> { self.levels.clone() }
 
-    fn generate(&self, level_id: Identifier, chunk_coords: Coordinates) -> Option<ChunkData> {
-        let mut new_data =  ChunkData { contents: HashMap::<Coordinates, Option<Voxel>>::new() };
+    fn generate(&self, level_id: Identifier, coords: ChunkCoordinates) -> Option<ChunkData> {
+        let mut new_data =  ChunkData { contents: HashMap::<RelativeCoordinates, Option<Voxel>>::new() };
         for x in 0..16 {
             for y in 0..16 {
                 for z in 0..16 {
-                    if chunk_coords.y >= 0 {
-                        new_data.contents.insert(Coordinates::new((x, y, z), CoordType::Relative), None);
+                    if coords.y >= 0 {
+                        new_data.contents.insert(RelativeCoordinates::new(x, y, z), None);
                     } else {
-                        new_data.contents.insert(Coordinates::new((x, y, z), CoordType::Relative), Some(Voxel::new(self.get_identifier("dev_tile"))));
+                        new_data.contents.insert(RelativeCoordinates::new(x, y, z), Some(Voxel::new(self.get_identifier("dev_tile"))));
                     }
                 }
             }

@@ -37,10 +37,10 @@ impl RegisteredPacks {
         packs
     }
 
-    pub fn generate(&self, level_id: Identifier, chunk_coords: Coordinates) -> Option<ChunkData> {
+    pub fn generate(&self, level_id: Identifier, coords: ChunkCoordinates) -> Option<ChunkData> {
         for (pack_name, pack) in &self.contents {
             if *pack_name == level_id.pack {
-                return pack.generate(level_id, chunk_coords)
+                return pack.generate(level_id, coords)
             }
         }
         None
@@ -54,5 +54,5 @@ pub trait Pack: Send + Sync {
     fn get_levels(&self) -> Vec<Identifier> { Vec::new() }
 
     // Returning None for this method should only be done if something is wrong with the parameters, such as the level not existing.
-    fn generate(&self, level_id: Identifier, chunk_coords: Coordinates) -> Option<ChunkData> { None }
+    fn generate(&self, level_id: Identifier, coords: ChunkCoordinates) -> Option<ChunkData> { None }
 }

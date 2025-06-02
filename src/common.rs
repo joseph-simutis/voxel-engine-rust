@@ -16,45 +16,65 @@ impl Identifier {
             obj: obj.to_string(),
         }
     }
+
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.pack, self.obj)
+    }
 }
 
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct Coordinates {
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+// Level Coordinates represent the location of a block inside of its level.
+pub struct LevelCoordinates {
     pub x: i64,
     pub y: i64,
     pub z: i64,
-    pub ctype: CoordType
+}
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+// Chunk Coordinates represent the location of a chunk inside of its level.
+pub struct ChunkCoordinates {
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
+}
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+// Relative Coordinates represent the location of a block inside of its chunk.
+pub struct RelativeCoordinates {
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
-impl Coordinates {
-    pub fn new(coords: (i64, i64, i64), ctype: CoordType) -> Coordinates {
-        Coordinates {
-            x: coords.0,
-            y: coords.1,
-            z: coords.2,
-            ctype: ctype,
+impl LevelCoordinates {
+    pub fn new(x: i64, y: i64, z: i64) -> LevelCoordinates {
+        LevelCoordinates {
+            x: x,
+            y: y,
+            z: z,
+        }
+    }
+}
+impl ChunkCoordinates {
+    pub fn new(x: i64, y: i64, z: i64) -> ChunkCoordinates {
+        ChunkCoordinates {
+            x: x,
+            y: y,
+            z: z,
+        }
+    }
+}
+impl RelativeCoordinates {
+    pub fn new(x: i64, y: i64, z: i64) -> RelativeCoordinates {
+        RelativeCoordinates {
+            x: x,
+            y: y,
+            z: z,
         }
     }
 
-    // Only applicable for Relative coordinates. In other cases, always returns true.
     pub fn inside_chunk(&self) -> bool {
-        if self.ctype == CoordType::Relative {
-            let range = 0..16;
-            range.contains(&self.x) && range.contains(&self.y) && range.contains(&self.z)
-        } else {
-            true
-        }
+        let range = 0..16;
+        range.contains(&self.x) && range.contains(&self.y) && range.contains(&self.z)
     }
-}
-
-#[derive(Hash, Eq, PartialEq, Clone)]
-// Chunk refers to the coordinates of the chunk itself.
-// Level refers to the coordinates of a voxel in the level.
-// Relative refers to the coordinates of a voxel within its containing chunk.
-pub enum CoordType {
-    Chunk,
-    Level,
-    Relative,
 }
 
 #[derive(Resource)]
@@ -70,18 +90,31 @@ impl Universe {
 
     pub fn add_levels(&mut self, registered_packs: Res<RegisteredPacks>) -> usize {
         let mut i = 0;
-        for pack in registered_packs.contents.values() {
-            for level in pack.get_levels().iter() {
+        for level in &registered_packs.levels {
+            if !self.levels.contains_key(&level) {
                 self.levels.insert(level.clone(), Level::new());
                 i += 1;
             }
         }
         i
     }
+
+    // If the level id and coordinates correspond to an existing chunk, it will be overwritten.
+    // Will return true if the generation was successful, else return false.
+    pub fn generate(&mut self, registered_packs: Res<RegisteredPacks>, level_id: Identifier, coords: ChunkCoordinates) -> bool {
+        let generated = registered_packs.generate(level_id.clone(), coords);
+        return match generated {
+            None => { false }
+            Some(data) => {
+                self.levels.get_mut(&level_id).expect(&*format!("Unknown level: {}", &level_id.to_string())).chunks.insert(coords, data);
+                true
+            }
+        }
+    }
 }
 
 pub struct Level {
-    pub chunks: HashMap<Coordinates, ChunkData>,
+    pub chunks: HashMap<ChunkCoordinates, ChunkData>,
 }
 
 impl Level {
@@ -106,7 +139,7 @@ impl Chunk {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct ChunkData {
-    pub contents: HashMap<Coordinates, Option<Voxel>>
+    pub contents: HashMap<RelativeCoordinates, Option<Voxel>>
 }
 
 // In this case, "complete" means that the chunk data contains values for every block inside the chunk.
@@ -128,7 +161,7 @@ impl ChunkData {
         for x in 0..16 {
             for y in 0..16 {
                 for z in 0..16 {
-                    new_data.contents.entry(Coordinates::new((x, y, z), CoordType::Relative)).or_insert(None);
+                    new_data.contents.entry(RelativeCoordinates::new(x, y, z)).or_insert(None);
                 }
             }
         }

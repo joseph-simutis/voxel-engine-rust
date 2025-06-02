@@ -40,16 +40,18 @@ pub fn update(
     mut camera: Query<&mut Transform, With<Camera3d>>,
 ) {
     if keyboard.pressed(KeyCode::Escape) {
-        exit.send(AppExit::Success);
+        exit.write(AppExit::Success);
     }
-    let delta = time.delta();
+    let delta = time.delta_secs();
     // Note to self: Camera code will require a large rework when a proper player is added.
     let Ok(mut camera) = camera.single_mut() else {
         return;
     };
     const CAMERA_SPEED: f32 = 3.0;
+    const CAMERA_ROTATION_SPEED: f32 = 0.03;
     for event in mouse.read() {
-        // TODO: Use event.delta in order to rotate the camera.
+        camera.rotate_y(event.delta.x * delta * CAMERA_ROTATION_SPEED);
+        camera.rotate_x(event.delta.y * delta * CAMERA_ROTATION_SPEED);
     }
     let mut offset = Vec3::ZERO;
     if keyboard.pressed(KeyCode::KeyW) { offset += Vec3::new(-camera.rotation.z, 0.0, camera.rotation.x); }
@@ -58,5 +60,5 @@ pub fn update(
     if keyboard.pressed(KeyCode::KeyD) { offset -= Vec3::new(camera.rotation.x, 0.0, camera.rotation.z); }
     if keyboard.pressed(KeyCode::Space) { offset += Vec3::Y; }
     if keyboard.pressed(KeyCode::ShiftLeft) { offset -= Vec3::Y; }
-    camera.translation += offset.normalize_or_zero() * delta.as_secs_f32() * CAMERA_SPEED;
+    camera.translation += offset.normalize_or_zero() * delta * CAMERA_SPEED;
 }
