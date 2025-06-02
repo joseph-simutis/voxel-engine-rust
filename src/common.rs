@@ -10,10 +10,10 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub fn new(new_pack: &str, new_obj: &str) -> Identifier {
+    pub fn new(pack: &str, obj: &str) -> Identifier {
         Identifier {
-            pack: new_pack.to_string(),
-            obj: new_obj.to_string(),
+            pack: pack.to_string(),
+            obj: obj.to_string(),
         }
     }
 }
@@ -49,11 +49,11 @@ impl Coordinates {
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 // Chunk refers to the coordinates of the chunk itself.
-// World refers to the coordinates of a voxel in the world.
+// Level refers to the coordinates of a voxel in the level.
 // Relative refers to the coordinates of a voxel within its containing chunk.
 pub enum CoordType {
     Chunk,
-    World,
+    Level,
     Relative,
 }
 
@@ -61,6 +61,7 @@ pub enum CoordType {
 pub struct Universe {
     pub levels: HashMap<Identifier, Level>
 }
+
 
 impl Universe {
     pub fn new() -> Universe {
