@@ -1,8 +1,11 @@
 use crate::packs::Pack;
 use crate::common::*;
 use std::collections::HashMap;
+// In order to add an addon, make sure to add a new module:
+// mod addon_module;
 
 pub struct VoxelEngineBase {
+    registered_addons: HashMap<String, Box<dyn VoxelEngineBaseAddon>>,
     voxels: Vec<Identifier>,
     levels: Vec<Identifier>,
 }
@@ -10,9 +13,12 @@ pub struct VoxelEngineBase {
 impl VoxelEngineBase {
     pub fn new() -> VoxelEngineBase {
         let mut base = VoxelEngineBase {
+            registered_addons: HashMap::new(),
             voxels: Vec::new(),
             levels: Vec::new(),
         };
+        // An addon to the base pack can be registered as such, replacing with your addon's name as needed:
+        // base.registered_addons.insert(String::from("addon_name"), Box::new(addon_module::AddonStruct::new()))
         base.voxels.push(base.get_identifier("dev_tile"));
         base.voxels.push(base.get_identifier("err_tile"));
         base.levels.push(base.get_identifier("dev_level"));
@@ -43,3 +49,5 @@ impl Pack for VoxelEngineBase {
         Some(new_data)
     }
 }
+
+pub trait VoxelEngineBaseAddon: Send + Sync {}

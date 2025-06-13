@@ -143,9 +143,9 @@ pub struct ChunkData {
 }
 
 // In this case, "complete" means that the chunk data contains values for every block inside the chunk.
-// If an incomplete chunk is rendered without first completing it, it may cause a crash.
-// "Excessive", then, means that the chunk data contains values for blocks outside the chunk.
-// If chunk data is excessive, then that will most likely not cause issues, but it will result in storing more data than needed.
+// If a chunk is rendered with incomplete data, it may cause issues.
+// "Excessive" means that the chunk data contains values for blocks outside the chunk.
+// If chunk data is excessive, then that will most likely not cause issues, but it will result in storing unused data.
 // A given chunk's data can be both incomplete and excessive.
 impl ChunkData {
     pub fn is_complete(&self) -> bool {
@@ -180,14 +180,15 @@ impl ChunkData {
 }
 
 #[derive(Clone, Eq, PartialEq)]
+// Represents an individual voxel in the world.
 pub struct Voxel {
     id: Identifier
 }
 
 impl Voxel {
-    pub fn new(new_id: Identifier) -> Voxel {
-        Voxel  {
-            id: new_id,
+    pub fn new(id: Identifier) -> Voxel {
+        Voxel {
+            id: id,
         }
     }
 }
