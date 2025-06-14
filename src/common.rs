@@ -1,17 +1,18 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 use crate::packs::*;
+use bimap::BiMap;
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 // pack represents the source pack for the object; obj represents the name of the object. obj need only be unique within a given pack, but the pack needs to be globally unique.
-pub struct Identifier {
+pub struct GlobalIdentifier {
     pub pack: String,
     pub obj: String,
 }
 
-impl Identifier {
-    pub fn new(pack: &str, obj: &str) -> Identifier {
-        Identifier {
+impl GlobalIdentifier {
+    pub fn new(pack: &str, obj: &str) -> GlobalIdentifier {
+        GlobalIdentifier {
             pack: pack.to_string(),
             obj: obj.to_string(),
         }
@@ -39,9 +40,9 @@ pub struct ChunkCoordinates {
 #[derive(Hash, Eq, PartialEq, Clone, Copy)]
 // Relative Coordinates represent the location of a block inside of its chunk.
 pub struct RelativeCoordinates {
-    pub x: i64,
-    pub y: i64,
-    pub z: i64,
+    pub x: usize,
+    pub y: usize,
+    pub z: usize,
 }
 
 impl LevelCoordinates {
@@ -63,7 +64,7 @@ impl ChunkCoordinates {
     }
 }
 impl RelativeCoordinates {
-    pub fn new(x: i64, y: i64, z: i64) -> RelativeCoordinates {
+    pub fn new(x: usize, y: usize, z: usize) -> RelativeCoordinates {
         RelativeCoordinates {
             x: x,
             y: y,
@@ -79,7 +80,7 @@ impl RelativeCoordinates {
 
 #[derive(Resource)]
 pub struct Universe {
-    pub levels: HashMap<Identifier, Level>
+    pub levels: HashMap<GlobalIdentifier, Level>
 }
 
 
@@ -101,12 +102,12 @@ impl Universe {
 
     // If the level id and coordinates correspond to an existing chunk, it will be overwritten.
     // Will return true if the generation was successful, else return false.
-    pub fn generate(&mut self, registered_packs: Res<RegisteredPacks>, level_id: Identifier, coords: ChunkCoordinates) -> bool {
+    pub fn generate(&mut self, registered_packs: Res<RegisteredPacks>, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> bool {
         let generated = registered_packs.generate(level_id.clone(), coords);
         return match generated {
             None => { false }
-            Some(data) => {
-                self.levels.get_mut(&level_id).expect(&*format!("Unknown level: {}", &level_id.to_string())).chunks.insert(coords, data);
+            Some(chunk) => {
+                self.levels.get_mut(&level_id).expect(&*format!("Unknown level: {}", &level_id.to_string())).add_global_chunk(coords, chunk);
                 true
             }
         }
@@ -114,81 +115,53 @@ impl Universe {
 }
 
 pub struct Level {
-    pub chunks: HashMap<ChunkCoordinates, ChunkData>,
+    voxel_palette: BiMap<u16, GlobalIdentifier>,
+    next_local: u16,
+    pub chunks: HashMap<ChunkCoordinates, Chunk>,
 }
 
 impl Level {
     pub fn new() -> Level {
-        Level { chunks: HashMap::new() }
+        Level {
+            voxel_palette: BiMap::new(),
+            next_local: 0,
+            chunks: HashMap::new(),
+        }
+    }
+
+    pub fn add_global_chunk(&mut self, chunk_coords: ChunkCoordinates, global_chunk: [GlobalIdentifier; 4096]) {
+        self.chunks.insert(chunk_coords, Chunk::new(global_chunk.map(|global_id| {
+            if !self.voxel_palette.contains_right(&global_id) {
+                self.voxel_palette.insert(self.next_local, global_id.clone());
+                self.next_local += 1;
+            }
+            *self.voxel_palette.get_by_right(&global_id).unwrap()
+        }).clone()));
     }
 }
 
+// Each voxel is stored as its associated local identifier.
+// "modified" refers to whether or not the chunk has been modified after generation.
+// If unmodified, the chunk will not be stored in the world in order to save space.
 pub struct Chunk {
-    pub data: ChunkData,
+    voxels: [u16; 4096],
     pub modified: bool,
 }
 
 impl Chunk {
-    pub fn new(data: ChunkData) -> Chunk {
+    pub fn new(voxels: [u16; 4096]) -> Chunk {
         Chunk {
-            data: data,
+            voxels: voxels,
             modified: false,
         }
     }
-}
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct ChunkData {
-    pub contents: HashMap<RelativeCoordinates, Option<Voxel>>
-}
-
-// In this case, "complete" means that the chunk data contains values for every block inside the chunk.
-// If a chunk is rendered with incomplete data, it may cause issues.
-// "Excessive" means that the chunk data contains values for blocks outside the chunk.
-// If chunk data is excessive, then that will most likely not cause issues, but it will result in storing unused data.
-// A given chunk's data can be both incomplete and excessive.
-impl ChunkData {
-    pub fn is_complete(&self) -> bool {
-        self.clone() == self.completed()
-    }
-
-    pub fn is_excessive(&self) -> bool {
-        self.clone() != self.trimmed()
-    }
-
-    pub fn completed(&self) -> ChunkData {
-        let mut new_data =  ChunkData { contents: self.contents.clone() };
-        for x in 0..16 {
-            for y in 0..16 {
-                for z in 0..16 {
-                    new_data.contents.entry(RelativeCoordinates::new(x, y, z)).or_insert(None);
-                }
-            }
-        }
-        new_data
-    }
-
-    pub fn trimmed(&self) -> ChunkData {
-        let mut new_data =  ChunkData { contents: self.contents.clone() };
-        for (coords, voxel) in &self.contents {
-            if !coords.inside_chunk() {
-                new_data.contents.remove(&coords);
-            }
-        }
-        new_data
-    }
-}
-
-#[derive(Clone, Eq, PartialEq)]
-// Represents an individual voxel in the world.
-pub struct Voxel {
-    id: Identifier
-}
-
-impl Voxel {
-    pub fn new(id: Identifier) -> Voxel {
-        Voxel {
-            id: id,
+    // Returns None if the coordinates are invalid, else returns Some containing the voxel.
+    pub fn get_voxel(&self, coords: RelativeCoordinates) -> Option<u16> {
+        if coords.inside_chunk() {
+            Some(self.voxels[coords.x + 16*coords.y + 256*coords.z])
+        } else {
+            None
         }
     }
 }
