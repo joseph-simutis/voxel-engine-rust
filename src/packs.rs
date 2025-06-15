@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::common::*;
+use crate::errors::*;
 use std::collections::HashMap;
 mod base;
 // In order to add your own pack, make sure to add it as a new module:
@@ -38,13 +39,13 @@ impl RegisteredPacks {
         packs
     }
 
-    pub fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Option<[GlobalIdentifier; 4096]> {
+    pub fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Result<[GlobalIdentifier; 4096], DualError<InvalidLevelError, InvalidChunkCoordinatesError>> {
         for (pack_name, pack) in &self.contents {
             if *pack_name == level_id.pack {
                 return pack.generate(level_id, coords)
             }
         }
-        None
+        Err(DualError::Left(InvalidLevelError { level: level_id }))
     }
 }
 
@@ -55,6 +56,5 @@ pub trait Pack: Send + Sync {
     fn get_levels(&self) -> Vec<GlobalIdentifier>;
 
     // The global identifiers this method outputs will be incorperated into the voxel palette of the containing level.
-    // Returning None for this method should only be done if something is wrong with the parameters.
-    fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Option<[GlobalIdentifier; 4096]>;
+    fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Result<[GlobalIdentifier; 4096], DualError<InvalidLevelError, InvalidChunkCoordinatesError>>;
 }

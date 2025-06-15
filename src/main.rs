@@ -3,6 +3,7 @@ mod client;
 mod common;
 mod server;
 mod packs;
+mod errors;
 
 fn main() {
     App::new()

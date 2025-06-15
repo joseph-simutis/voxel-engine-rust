@@ -1,5 +1,6 @@
 use crate::packs::Pack;
 use crate::common::*;
+use crate::errors::*;
 use std::collections::HashMap;
 // In order to add an addon, make sure to add it as a new module:
 // mod addon_module;
@@ -33,15 +34,15 @@ impl Pack for VoxelEngineBase {
 
     fn get_levels(&self) -> Vec<GlobalIdentifier> { self.levels.clone() }
 
-    fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Option<[GlobalIdentifier; 4096]> {
+    fn generate(&self, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> Result<[GlobalIdentifier; 4096], DualError<InvalidLevelError, InvalidChunkCoordinatesError>> {
         if level_id == self.get_identifier("dev_level") {
             if coords.y >= 0 {
-                Some(std::array::from_fn(|_| GlobalIdentifier::new("required", "air")))
+                Ok(std::array::from_fn(|_| GlobalIdentifier::new("required", "air")))
             } else {
-                Some(std::array::from_fn(|_| self.get_identifier("dev_tile")))
+                Ok(std::array::from_fn(|_| self.get_identifier("dev_tile")))
             }
         } else {
-            None
+            Err(DualError::Left(InvalidLevelError { level: level_id }))
         }
     }
 }

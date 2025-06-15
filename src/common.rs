@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 use crate::packs::*;
+use crate::errors::*;
+use std::fmt;
 use bimap::BiMap;
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
 // pack represents the source pack for the object; obj represents the name of the object. obj need only be unique within a given pack, but the pack needs to be globally unique.
 pub struct GlobalIdentifier {
     pub pack: String,
@@ -17,27 +19,29 @@ impl GlobalIdentifier {
             obj: obj.to_string(),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.pack, self.obj)
+impl fmt::Display for GlobalIdentifier {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.pack, self.obj)
     }
 }
 
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 // Level Coordinates represent the location of a block inside of its level.
 pub struct LevelCoordinates {
     pub x: i64,
     pub y: i64,
     pub z: i64,
 }
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 // Chunk Coordinates represent the location of a chunk inside of its level.
 pub struct ChunkCoordinates {
     pub x: i64,
     pub y: i64,
     pub z: i64,
 }
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 // Relative Coordinates represent the location of a block inside of its chunk.
 pub struct RelativeCoordinates {
     pub x: usize,
@@ -78,6 +82,22 @@ impl RelativeCoordinates {
     }
 }
 
+impl fmt::Display for LevelCoordinates {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(x:{}, y:{}, z:{})", self.x, self.y, self.z)
+    }
+}
+impl fmt::Display for ChunkCoordinates {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(x:{}, y:{}, z:{})", self.x, self.y, self.z)
+    }
+}
+impl fmt::Display for RelativeCoordinates {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(x:{}, y:{}, z:{})", self.x, self.y, self.z)
+    }
+}
+
 #[derive(Resource)]
 pub struct Universe {
     pub levels: HashMap<GlobalIdentifier, Level>
@@ -105,8 +125,8 @@ impl Universe {
     pub fn generate(&mut self, registered_packs: Res<RegisteredPacks>, level_id: GlobalIdentifier, coords: ChunkCoordinates) -> bool {
         let generated = registered_packs.generate(level_id.clone(), coords);
         return match generated {
-            None => { false }
-            Some(chunk) => {
+            Err(_) => { false }
+            Ok(chunk) => {
                 self.levels.get_mut(&level_id).expect(&*format!("Unknown level: {}", &level_id.to_string())).add_global_chunk(coords, chunk);
                 true
             }
@@ -151,17 +171,16 @@ pub struct Chunk {
 impl Chunk {
     pub fn new(voxels: [u16; 4096]) -> Chunk {
         Chunk {
-            voxels: voxels,
+            voxels,
             modified: false,
         }
     }
 
-    // Returns None if the coordinates are invalid, else returns Some containing the voxel.
-    pub fn get_voxel(&self, coords: RelativeCoordinates) -> Option<u16> {
+    pub fn get_voxel(&self, coords: RelativeCoordinates) -> Result<u16, InvalidRelativeCoordinatesError> {
         if coords.inside_chunk() {
-            Some(self.voxels[coords.x + 16*coords.y + 256*coords.z])
+            Ok(self.voxels[coords.x + 16*coords.y + 256*coords.z])
         } else {
-            None
+            Err(InvalidRelativeCoordinatesError { coords })
         }
     }
 }
